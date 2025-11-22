@@ -11,29 +11,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Plus, Trash2, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Image as ImageIcon, Bold, Italic, Underline, Info, Shuffle } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
-
-interface Option {
-    id: string;
-    text: string;
-    isCorrect: boolean;
-}
-
-interface Question {
-    id: string;
-    text: string;
-    options: Option[];
-    imageUrl?: string;
-}
+import ReactMarkdown from "react-markdown";
+import { Question, QuizSettings } from "@/lib/types";
 
 const MathPreview = ({ text }: { text: string }) => {
     if (!text) return <span></span>;
 
+    // Custom renderer to handle both Markdown and LaTeX
+    // We'll use a simple approach: Render Markdown first, then process LaTeX in the output?
+    // Or better: Split by LaTeX delimiters, render Markdown for text parts, and LaTeX for math parts.
+
     try {
-        // Split text by $ delimiters for inline math
         const parts: React.ReactElement[] = [];
         let currentIndex = 0;
         let inMath = false;
@@ -58,8 +53,13 @@ const MathPreview = ({ text }: { text: string }) => {
                 } else {
                     // Start of math expression
                     if (i > currentIndex) {
-                        // Add normal text before math
-                        parts.push(<span key={currentIndex}>{text.substring(currentIndex, i)}</span>);
+                        // Add normal text before math - Render as Markdown
+                        const mdText = text.substring(currentIndex, i);
+                        parts.push(
+                            <span key={currentIndex} className="inline-block">
+                                <ReactMarkdown>{mdText}</ReactMarkdown>
+                            </span>
+                        );
                     }
                     mathStart = i;
                     inMath = true;
@@ -69,10 +69,15 @@ const MathPreview = ({ text }: { text: string }) => {
 
         // Add remaining text
         if (currentIndex < text.length) {
-            parts.push(<span key={currentIndex}>{text.substring(currentIndex)}</span>);
+            const mdText = text.substring(currentIndex);
+            parts.push(
+                <span key={currentIndex} className="inline-block">
+                    <ReactMarkdown>{mdText}</ReactMarkdown>
+                </span>
+            );
         }
 
-        return <>{parts}</>;
+        return <div className="prose dark:prose-invert max-w-none flex flex-wrap gap-1 items-center">{parts}</div>;
     } catch (e) {
         return <span>{text}</span>;
     }
@@ -91,8 +96,17 @@ export default function CreateQuizPage() {
                 { id: "1", text: "", isCorrect: false },
                 { id: "2", text: "", isCorrect: false },
             ],
+            randomizeOptions: false,
         },
     ]);
+    const [settings, setSettings] = useState<QuizSettings>({
+        gradingSystem: true,
+        timer: 0,
+        negativeMarking: false,
+        randomizeQuestions: false,
+        pointsPerQuestion: 1,
+        negativeMarkingPoints: 0.25,
+    });
     const [submitting, setSubmitting] = useState(false);
     const [uploadingImage, setUploadingImage] = useState<string | null>(null);
 
@@ -106,6 +120,7 @@ export default function CreateQuizPage() {
                     { id: "1", text: "", isCorrect: false },
                     { id: "2", text: "", isCorrect: false },
                 ],
+                randomizeOptions: false,
             },
         ]);
     };
@@ -118,6 +133,18 @@ export default function CreateQuizPage() {
         setQuestions(questions.map((q) => (q.id === id ? { ...q, text } : q)));
     };
 
+    const toggleQuestionRandomization = (id: string) => {
+        setQuestions(questions.map((q) => (q.id === id ? { ...q, randomizeOptions: !q.randomizeOptions } : q)));
+    };
+
+    const insertText = (id: string, prefix: string, suffix: string) => {
+        const question = questions.find((q) => q.id === id);
+        if (!question) return;
+
+        const newText = question.text + `${prefix}text${suffix}`;
+        updateQuestionText(id, newText);
+    };
+
     const handleImageUpload = async (questionId: string, file: File) => {
         if (!file) return;
         setUploadingImage(questionId);
@@ -127,9 +154,9 @@ export default function CreateQuizPage() {
             const url = await getDownloadURL(storageRef);
             setQuestions(questions.map((q) => (q.id === questionId ? { ...q, imageUrl: url } : q)));
             toast.success("Image uploaded!");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error uploading image:", error);
-            toast.error("Failed to upload image.");
+            toast.error(`Failed to upload image: ${error.message || error.code || "Unknown error"}`);
         } finally {
             setUploadingImage(null);
         }
@@ -205,6 +232,7 @@ export default function CreateQuizPage() {
                 title,
                 description,
                 questions,
+                settings,
                 createdAt: Timestamp.now(),
             });
             toast.success("Quiz created successfully!");
@@ -218,113 +246,269 @@ export default function CreateQuizPage() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8 pb-10">
+        <div className="max-w-4xl mx-auto space-y-8 pb-10">
             <div>
                 <h1 className="text-3xl font-bold">Create New Quiz</h1>
-                <p className="text-gray-500">Add questions, options, and set correct answers. Supports LaTeX for math (e.g. <code>\sqrt{"{x}"}</code>).</p>
+                <p className="text-gray-500">Configure your quiz settings and add questions.</p>
             </div>
 
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="title">Quiz Title</Label>
-                    <Input
-                        id="title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="e.g. Introduction to Physics"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                        id="description"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Brief description of the quiz..."
-                    />
-                </div>
-            </div>
+            <Tabs defaultValue="details" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="details">Quiz Details</TabsTrigger>
+                    <TabsTrigger value="questions">Questions</TabsTrigger>
+                    <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
 
-            <div className="space-y-6">
-                {questions.map((q, index) => (
-                    <Card key={q.id}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-lg font-medium">Question {index + 1}</CardTitle>
-                            <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                <TabsContent value="details" className="space-y-4 mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Basic Information</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Question Text (LaTeX supported)</Label>
+                                <Label htmlFor="title">Quiz Title</Label>
                                 <Input
-                                    value={q.text}
-                                    onChange={(e) => updateQuestionText(q.id, e.target.value)}
-                                    placeholder="Enter question text..."
+                                    id="title"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="e.g. Introduction to Physics"
                                 />
-                                {q.text && (
-                                    <div className="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded">
-                                        Preview: <MathPreview text={q.text} />
-                                    </div>
-                                )}
                             </div>
-
                             <div className="space-y-2">
-                                <Label>Image (Optional)</Label>
-                                <div className="flex items-center gap-4">
-                                    <Input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            if (e.target.files?.[0]) {
-                                                handleImageUpload(q.id, e.target.files[0]);
-                                            }
-                                        }}
-                                        disabled={uploadingImage === q.id}
-                                    />
-                                    {uploadingImage === q.id && <span className="text-sm text-blue-500">Uploading...</span>}
-                                </div>
-                                {q.imageUrl && (
-                                    <div className="mt-2">
-                                        <img src={q.imageUrl} alt="Question Image" className="max-h-40 rounded border" />
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Options</Label>
-                                {q.options.map((option) => (
-                                    <div key={option.id} className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={option.isCorrect}
-                                            onChange={() => toggleCorrectOption(q.id, option.id)}
-                                            className="h-4 w-4"
-                                        />
-                                        <Input
-                                            value={option.text}
-                                            onChange={(e) => updateOptionText(q.id, option.id, e.target.value)}
-                                            placeholder={`Option text`}
-                                        />
-                                        <Button variant="ghost" size="icon" onClick={() => removeOption(q.id, option.id)}>
-                                            <Trash2 className="h-4 w-4 text-gray-400" />
-                                        </Button>
-                                    </div>
-                                ))}
-                                <Button variant="outline" size="sm" onClick={() => addOption(q.id)} className="mt-2">
-                                    <Plus className="mr-2 h-4 w-4" /> Add Option
-                                </Button>
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Brief description of the quiz..."
+                                />
                             </div>
                         </CardContent>
                     </Card>
-                ))}
-            </div>
+                </TabsContent>
 
-            <div className="flex justify-between">
-                <Button variant="outline" onClick={addQuestion}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Question
-                </Button>
-                <Button onClick={handleSubmit} disabled={submitting}>
+                <TabsContent value="questions" className="space-y-6 mt-4">
+                    {questions.map((q, index) => (
+                        <Card key={q.id}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-lg font-medium">Question {index + 1}</CardTitle>
+                                <div className="flex items-center gap-2">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="flex items-center gap-2 mr-2">
+                                                    <Label htmlFor={`randomize-${q.id}`} className="text-xs cursor-pointer">Randomize Options</Label>
+                                                    <Switch
+                                                        id={`randomize-${q.id}`}
+                                                        checked={q.randomizeOptions}
+                                                        onCheckedChange={() => toggleQuestionRandomization(q.id)}
+                                                    />
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Shuffle options for this question</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)}>
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <Label>Question Text (Markdown & LaTeX supported)</Label>
+                                        <div className="flex gap-1">
+                                            <Button variant="ghost" size="sm" onClick={() => insertText(q.id, "**", "**")} title="Bold">
+                                                <Bold className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => insertText(q.id, "*", "*")} title="Italic">
+                                                <Italic className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => insertText(q.id, "<u>", "</u>")} title="Underline">
+                                                <Underline className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <Textarea
+                                        value={q.text}
+                                        onChange={(e) => updateQuestionText(q.id, e.target.value)}
+                                        placeholder="Enter question text... Use $ for math."
+                                        className="min-h-[100px]"
+                                    />
+                                    {q.text && (
+                                        <div className="text-sm text-gray-600 mt-1 p-4 bg-gray-50 dark:bg-gray-900 rounded border">
+                                            <div className="font-semibold text-xs text-gray-400 mb-2">PREVIEW</div>
+                                            <MathPreview text={q.text} />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Image (Optional)</Label>
+                                    <div className="flex items-center gap-4">
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                if (e.target.files?.[0]) {
+                                                    handleImageUpload(q.id, e.target.files[0]);
+                                                }
+                                            }}
+                                            disabled={uploadingImage === q.id}
+                                        />
+                                        {uploadingImage === q.id && <span className="text-sm text-blue-500">Uploading...</span>}
+                                    </div>
+                                    {q.imageUrl && (
+                                        <div className="mt-2">
+                                            <img src={q.imageUrl} alt="Question Image" className="max-h-40 rounded border" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Options</Label>
+                                    {q.options.map((option) => (
+                                        <div key={option.id} className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={option.isCorrect}
+                                                onChange={() => toggleCorrectOption(q.id, option.id)}
+                                                className="h-4 w-4"
+                                            />
+                                            <Input
+                                                value={option.text}
+                                                onChange={(e) => updateOptionText(q.id, option.id, e.target.value)}
+                                                placeholder={`Option text`}
+                                            />
+                                            <Button variant="ghost" size="icon" onClick={() => removeOption(q.id, option.id)}>
+                                                <Trash2 className="h-4 w-4 text-gray-400" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    <Button variant="outline" size="sm" onClick={() => addOption(q.id)} className="mt-2">
+                                        <Plus className="mr-2 h-4 w-4" /> Add Option
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+
+                    <Button variant="outline" onClick={addQuestion} className="w-full">
+                        <Plus className="mr-2 h-4 w-4" /> Add Question
+                    </Button>
+                </TabsContent>
+
+                <TabsContent value="settings" className="space-y-4 mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Quiz Settings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Grading System</Label>
+                                    <div className="text-sm text-gray-500 flex items-center gap-2">
+                                        Enable scoring for this quiz
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger><Info className="h-4 w-4" /></TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>If disabled, the quiz will be for practice only.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={settings.gradingSystem}
+                                    onCheckedChange={(checked) => setSettings({ ...settings, gradingSystem: checked })}
+                                />
+                            </div>
+
+                            {settings.gradingSystem && (
+                                <div className="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-800">
+                                    <Label className="text-base">Points per Question</Label>
+                                    <Input
+                                        type="number"
+                                        min="0.5"
+                                        step="0.5"
+                                        value={settings.pointsPerQuestion}
+                                        onChange={(e) => setSettings({ ...settings, pointsPerQuestion: parseFloat(e.target.value) || 0 })}
+                                        className="max-w-[200px]"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Negative Marking</Label>
+                                    <div className="text-sm text-gray-500 flex items-center gap-2">
+                                        Deduct points for wrong answers
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger><Info className="h-4 w-4" /></TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Points will be deducted for each incorrect answer.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={settings.negativeMarking}
+                                    onCheckedChange={(checked) => setSettings({ ...settings, negativeMarking: checked })}
+                                />
+                            </div>
+
+                            {settings.negativeMarking && (
+                                <div className="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-800">
+                                    <Label className="text-base">Points to Deduct</Label>
+                                    <Input
+                                        type="number"
+                                        min="0.1"
+                                        step="0.1"
+                                        value={settings.negativeMarkingPoints}
+                                        onChange={(e) => setSettings({ ...settings, negativeMarkingPoints: parseFloat(e.target.value) || 0 })}
+                                        className="max-w-[200px]"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Randomize Questions</Label>
+                                    <div className="text-sm text-gray-500">
+                                        Shuffle question order for each student
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={settings.randomizeQuestions}
+                                    onCheckedChange={(checked) => setSettings({ ...settings, randomizeQuestions: checked })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-base">Timer (minutes)</Label>
+                                <div className="text-sm text-gray-500 mb-2">
+                                    Set to 0 for no time limit
+                                </div>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    value={settings.timer}
+                                    onChange={(e) => setSettings({ ...settings, timer: parseInt(e.target.value) || 0 })}
+                                    className="max-w-[200px]"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end pt-6">
+                <Button size="lg" onClick={handleSubmit} disabled={submitting}>
                     {submitting ? "Saving..." : "Save Quiz"}
                 </Button>
             </div>
