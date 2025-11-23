@@ -225,6 +225,22 @@ export default function CreateQuizPage() {
             return;
         }
 
+        // Validate that each question has at least one correct answer
+        for (let i = 0; i < questions.length; i++) {
+            const q = questions[i];
+            const hasCorrectOption = q.options.some((o) => o.isCorrect);
+            if (!hasCorrectOption) {
+                toast.error(`Question ${i + 1} does not have a correct answer selected.`);
+                return;
+            }
+            // Also validate that options are not empty
+            const hasEmptyOption = q.options.some((o) => !o.text.trim());
+            if (hasEmptyOption) {
+                toast.error(`Question ${i + 1} has empty options. Please fill them or remove them.`);
+                return;
+            }
+        }
+
         setSubmitting(true);
         try {
             await addDoc(collection(db, "quizzes"), {

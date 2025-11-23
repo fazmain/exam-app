@@ -74,7 +74,7 @@ const MathPreview = ({ text }: { text: string }) => {
 
 export default function QuizPage() {
     const { id } = useParams();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -83,6 +83,8 @@ export default function QuizPage() {
     const [score, setScore] = useState(0);
     const [loading, setLoading] = useState(true);
     const [timeLeft, setTimeLeft] = useState<number | null>(null); // in seconds
+
+    const [hasStarted, setHasStarted] = useState(false);
 
     const handleSubmit = useCallback(async (autoSubmit = false) => {
         if (!quiz || !user) return;
@@ -129,8 +131,13 @@ export default function QuizPage() {
     }, [quiz, user, answers, questions]);
 
     useEffect(() => {
+        if (!authLoading && !user) {
+            router.push("/login");
+            return;
+        }
+
         const fetchQuiz = async () => {
-            if (!id) return;
+            if (!id || !user) return;
             try {
                 const docRef = doc(db, "quizzes", id as string);
                 const docSnap = await getDoc(docRef);
@@ -152,28 +159,10 @@ export default function QuizPage() {
 
                     setQuestions(displayQuestions);
 
-                    // Handle Timer
+                    // Handle Timer - Only set initial time here, don't start it
                     if (quizData.settings?.timer && quizData.settings.timer > 0) {
-                        const storageKey = `quiz_end_time_${id}_${user?.uid}`;
-                        const storedEndTime = localStorage.getItem(storageKey);
-
-                        if (storedEndTime) {
-                            const endTime = parseInt(storedEndTime);
-                            const now = Date.now();
-                            const remaining = Math.ceil((endTime - now) / 1000);
-
-                            if (remaining > 0) {
-                                setTimeLeft(remaining);
-                            } else {
-                                setTimeLeft(0);
-                                // If time is up but not submitted, it will be handled by the useEffect
-                            }
-                        } else {
-                            const durationInSeconds = quizData.settings.timer * 60;
-                            const endTime = Date.now() + durationInSeconds * 1000;
-                            localStorage.setItem(storageKey, endTime.toString());
-                            setTimeLeft(durationInSeconds);
-                        }
+                        const durationInSeconds = quizData.settings.timer * 60;
+                        setTimeLeft(durationInSeconds);
                     }
                 } else {
                     toast.error("Quiz not found");
@@ -187,15 +176,40 @@ export default function QuizPage() {
             }
         };
 
-        fetchQuiz();
-    }, [id, router, user]);
+        if (user) {
+            fetchQuiz();
+        }
+    }, [id, router, user, authLoading]);
 
+    // Timer Effect - Only runs when hasStarted is true
     useEffect(() => {
-        if (timeLeft === null || submitted) {
+        if (!hasStarted || timeLeft === null || submitted) {
             if (submitted && quiz && user) {
                 localStorage.removeItem(`quiz_end_time_${quiz.id}_${user.uid}`);
             }
             return;
+        }
+
+        // Initialize persistence when starting
+        if (hasStarted && quiz && quiz.settings?.timer && quiz.settings.timer > 0) {
+            const storageKey = `quiz_end_time_${quiz.id}_${user?.uid}`;
+            const storedEndTime = localStorage.getItem(storageKey);
+
+            if (!storedEndTime) {
+                const durationInSeconds = quiz.settings.timer * 60;
+                const endTime = Date.now() + durationInSeconds * 1000;
+                localStorage.setItem(storageKey, endTime.toString());
+            } else {
+                // Sync with stored time if exists (e.g. refresh)
+                const endTime = parseInt(storedEndTime);
+                const now = Date.now();
+                const remaining = Math.ceil((endTime - now) / 1000);
+                if (remaining > 0) {
+                    setTimeLeft(remaining);
+                } else {
+                    setTimeLeft(0);
+                }
+            }
         }
 
         if (timeLeft <= 0) {
@@ -211,7 +225,7 @@ export default function QuizPage() {
         }, 1000);
 
         return () => clearInterval(timerId);
-    }, [timeLeft, submitted, handleSubmit, quiz, user]);
+    }, [timeLeft, submitted, handleSubmit, quiz, user, hasStarted]);
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -219,7 +233,8 @@ export default function QuizPage() {
         return `${mins}:${secs.toString().padStart(2, "0")}`;
     };
 
-    if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    if (authLoading || loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    if (!user) return null; // Should redirect
     if (!quiz) return <div className="flex h-screen items-center justify-center">Quiz not found</div>;
 
     if (submitted) {
@@ -230,6 +245,62 @@ export default function QuizPage() {
                 questions={questions}
                 answers={answers}
             />
+        );
+    }
+
+    if (!hasStarted) {
+        return (
+            <div className="max-w-2xl mx-auto py-20 px-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-3xl text-center">{quiz.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="text-center text-gray-600">
+                            <p className="mb-4">{quiz.description || "No description provided."}</p>
+                            <div className="flex justify-center gap-8 text-sm">
+                                <div className="flex flex-col items-center">
+                                    <span className="font-bold">{questions.length}</span>
+                                    <span>Questions</span>
+                                </div>
+                                {quiz.settings?.timer ? (
+                                    <div className="flex flex-col items-center">
+                                        <span className="font-bold">{quiz.settings.timer} min</span>
+                                        <span>Time Limit</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center">
+                                        <span className="font-bold">None</span>
+                                        <span>Time Limit</span>
+                                    </div>
+                                )}
+                                <div className="flex flex-col items-center">
+                                    <span className="font-bold">{quiz.settings?.pointsPerQuestion || 1}</span>
+                                    <span>Points/Q</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <h3 className="font-semibold flex items-center gap-2 mb-2 text-yellow-800 dark:text-yellow-200">
+                                <AlertTriangle className="h-4 w-4" /> Instructions
+                            </h3>
+                            <ul className="list-disc list-inside text-sm space-y-1 text-yellow-700 dark:text-yellow-300">
+                                <li>Once you start, the timer will begin (if applicable).</li>
+                                <li>Do not refresh the page unless necessary.</li>
+                                {quiz.settings?.negativeMarking && (
+                                    <li>Negative marking is enabled (-{quiz.settings.negativeMarkingPoints} per wrong answer).</li>
+                                )}
+                                <li>Click "Submit Quiz" when you are finished.</li>
+                            </ul>
+                        </div>
+
+                        <Button size="lg" className="w-full" onClick={() => setHasStarted(true)}>
+                            Start Quiz
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
         );
     }
 
