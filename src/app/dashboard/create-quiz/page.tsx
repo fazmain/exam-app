@@ -633,6 +633,19 @@ export default function CreateQuizPage() {
                                 />
                             </div>
 
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Allow Retakes</Label>
+                                    <div className="text-sm text-gray-500">
+                                        Allow students to take the quiz multiple times
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={settings.allowRetakes ?? false}
+                                    onCheckedChange={(checked) => setSettings({ ...settings, allowRetakes: checked })}
+                                />
+                            </div>
+
                             <div className="space-y-2">
                                 <Label className="text-base">Timer (minutes)</Label>
                                 <div className="text-sm text-gray-500 mb-2">

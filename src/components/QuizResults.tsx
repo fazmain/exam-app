@@ -74,9 +74,10 @@ interface QuizResultsProps {
     questions: Question[];
     answers: { [key: string]: string };
     onBack?: () => void;
+    allowRetakes?: boolean;
 }
 
-export function QuizResults({ quizId, quizTitle, score, questions, answers, onBack }: QuizResultsProps) {
+export function QuizResults({ quizId, quizTitle, score, questions, answers, onBack, allowRetakes }: QuizResultsProps) {
     const router = useRouter();
     const [stats, setStats] = useState<{ [questionId: string]: { [optionId: string]: number } }>({});
     const [totalAttempts, setTotalAttempts] = useState(0);
@@ -253,9 +254,16 @@ export function QuizResults({ quizId, quizTitle, score, questions, answers, onBa
                         </TabsContent>
                     </Tabs>
 
-                    <Button onClick={onBack || (() => router.push("/student/dashboard"))} className="w-full mt-6">
-                        Back to Dashboard
-                    </Button>
+                    <div className="flex gap-4 mt-6">
+                        <Button onClick={onBack || (() => router.push("/student/dashboard"))} className="flex-1" variant="outline">
+                            Back to Dashboard
+                        </Button>
+                        {allowRetakes && (
+                            <Button onClick={() => router.push(`/quiz/${quizId}`)} className="flex-1">
+                                Retake Quiz
+                            </Button>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
         </div>

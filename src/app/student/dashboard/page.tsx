@@ -22,6 +22,7 @@ import { LogOut } from "lucide-react";
 
 interface Attempt {
     id: string;
+    quizId: string;
     quizTitle: string;
     score: number;
     totalQuestions: number;
@@ -127,6 +128,9 @@ export default function StudentDashboard() {
                                         <TableCell className="text-right">
                                             <Button variant="outline" size="sm" onClick={() => router.push(`/student/attempt/${attempt.id}`)}>
                                                 Review
+                                            </Button>
+                                            <Button variant="default" size="sm" className="ml-2" onClick={() => router.push(`/quiz/${attempt.quizId}`)}>
+                                                Retake
                                             </Button>
                                         </TableCell>
                                     </TableRow>

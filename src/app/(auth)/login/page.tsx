@@ -27,7 +27,17 @@ function LoginForm() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
             toast.success("Logged in successfully!");
-            router.push(redirect || "/dashboard");
+
+            // Check for stored redirect URL
+            const redirectUrl = localStorage.getItem('redirectAfterLogin');
+            if (redirectUrl) {
+                localStorage.removeItem('redirectAfterLogin');
+                router.push(redirectUrl);
+            } else if (redirect) {
+                router.push(redirect);
+            } else {
+                router.push("/dashboard");
+            }
         } catch (error: any) {
             console.error(error);
             toast.error(error.message || "Failed to login");

@@ -43,9 +43,9 @@ function SignupForm() {
             };
 
             if (role === "student") {
-                // Generate a random 6-digit student ID
+                // Generate a random 5-digit student ID
                 // In a real app, we'd check for uniqueness, but for now random is fine
-                userData.studentId = Math.floor(100000 + Math.random() * 900000).toString();
+                userData.studentId = Math.floor(10000 + Math.random() * 90000).toString();
             }
 
             await setDoc(doc(db, "users", user.uid), userData);

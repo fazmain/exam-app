@@ -23,6 +23,7 @@ export interface QuizSettings {
     negativeMarkingPoints: number;
     lockedAnswers: boolean; // If true, users can't change answer once selected
     isActive: boolean; // If false, quiz is not accepting responses
+    allowRetakes?: boolean; // If true, students can take the quiz multiple times
 }
 
 export interface Quiz {

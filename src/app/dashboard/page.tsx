@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -94,6 +94,25 @@ export default function DashboardPage() {
                                             </Button>
                                         </Link>
                                     </div>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={async () => {
+                                            if (confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) {
+                                                try {
+                                                    await deleteDoc(doc(db, "quizzes", quiz.id));
+                                                    setQuizzes(quizzes.filter(q => q.id !== quiz.id));
+                                                    // toast.success("Quiz deleted successfully"); // Assuming toast is available or added
+                                                } catch (error) {
+                                                    console.error("Error deleting quiz:", error);
+                                                    alert("Failed to delete quiz");
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        Delete
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>

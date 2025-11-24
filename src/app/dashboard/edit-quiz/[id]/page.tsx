@@ -336,6 +336,14 @@ export default function EditQuizPage() {
                             />
                         </div>
                         <div className="flex items-center justify-between">
+                            <Label htmlFor="allowRetakes">Allow Retakes</Label>
+                            <Switch
+                                id="allowRetakes"
+                                checked={settings.allowRetakes ?? false}
+                                onCheckedChange={(checked) => setSettings({ ...settings, allowRetakes: checked })}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
                             <Label htmlFor="randomizeQuestions">Randomize Questions</Label>
                             <Switch
                                 id="randomizeQuestions"

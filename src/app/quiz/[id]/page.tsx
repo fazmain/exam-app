@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, addDoc, Timestamp, collection } from "firebase/firestore";
+import { doc, getDoc, addDoc, Timestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { Quiz, Question } from "@/lib/types";
 import { shuffleArray } from "@/lib/utils";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Lock } from "lucide-react";
@@ -140,6 +140,8 @@ export default function QuizPage() {
 
     useEffect(() => {
         if (!authLoading && !user) {
+            // Store the intended destination in localStorage
+            localStorage.setItem('redirectAfterLogin', `/quiz/${id}`);
             router.push("/login");
             return;
         }
@@ -164,6 +166,21 @@ export default function QuizPage() {
                         toast.error("This quiz is currently not accepting responses.");
                         router.push("/student/dashboard");
                         return;
+                    }
+
+                    // Check for existing attempts if retakes are not allowed
+                    if (quizData.settings && quizData.settings.allowRetakes === false) {
+                        const attemptsQuery = query(
+                            collection(db, "attempts"),
+                            where("quizId", "==", id),
+                            where("studentId", "==", user.uid)
+                        );
+                        const attemptsSnap = await getDocs(attemptsQuery);
+                        if (!attemptsSnap.empty) {
+                            toast.error("You have already taken this quiz.");
+                            router.push("/student/dashboard");
+                            return;
+                        }
                     }
 
                     setQuiz(quizData);
@@ -273,6 +290,7 @@ export default function QuizPage() {
                 score={score}
                 questions={questions}
                 answers={answers}
+                allowRetakes={quiz.settings?.allowRetakes}
             />
         );
     }
