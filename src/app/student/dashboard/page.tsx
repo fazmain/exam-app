@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Table,
@@ -17,6 +18,7 @@ import {
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 interface Attempt {
     id: string;
@@ -64,15 +66,30 @@ export default function StudentDashboard() {
         }
     }, [user, authLoading, router]);
 
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            router.push("/login");
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    };
+
     if (authLoading || loading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
     }
 
     return (
         <div className="max-w-4xl mx-auto py-10 space-y-8 px-4">
-            <div>
-                <h1 className="text-3xl font-bold">Student Dashboard</h1>
-                <p className="text-gray-500 mt-2">View your past quiz attempts and scores.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold">Student Dashboard</h1>
+                    <p className="text-gray-500 mt-2">View your past quiz attempts and scores.</p>
+                </div>
+                <Button variant="outline" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
             </div>
 
             <Card>

@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Plus, Trash2, Image as ImageIcon, Bold, Italic, Underline, Info, Shuffle } from "lucide-react";
+import { Plus, Trash2, Image as ImageIcon, Bold, Italic, Underline, Info, Shuffle, X } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import ReactMarkdown from "react-markdown";
@@ -106,7 +106,11 @@ export default function CreateQuizPage() {
         randomizeQuestions: false,
         pointsPerQuestion: 1,
         negativeMarkingPoints: 0.25,
+        lockedAnswers: false,
+        isActive: true,
     });
+
+
     const [submitting, setSubmitting] = useState(false);
     const [uploadingImage, setUploadingImage] = useState<string | null>(null);
 
@@ -145,14 +149,28 @@ export default function CreateQuizPage() {
         updateQuestionText(id, newText);
     };
 
-    const handleImageUpload = async (questionId: string, file: File) => {
+    const updateQuestionDescription = (id: string, description: string) => {
+        setQuestions(questions.map((q) => (q.id === id ? { ...q, description } : q)));
+    };
+
+    const handleImageUpload = async (questionId: string, file: File, optionId?: string) => {
         if (!file) return;
-        setUploadingImage(questionId);
+        const uploadId = optionId ? `${questionId}-${optionId}` : questionId;
+        setUploadingImage(uploadId);
         try {
             const storageRef = ref(storage, `quiz-images/${user?.uid}/${Date.now()}_${file.name}`);
             await uploadBytes(storageRef, file);
             const url = await getDownloadURL(storageRef);
-            setQuestions(questions.map((q) => (q.id === questionId ? { ...q, imageUrl: url } : q)));
+
+            if (optionId) {
+                setQuestions(questions.map((q) =>
+                    q.id === questionId
+                        ? { ...q, options: q.options.map(o => o.id === optionId ? { ...o, imageUrl: url } : o) }
+                        : q
+                ));
+            } else {
+                setQuestions(questions.map((q) => (q.id === questionId ? { ...q, imageUrl: url } : q)));
+            }
             toast.success("Image uploaded!");
         } catch (error: any) {
             console.error("Error uploading image:", error);
@@ -162,92 +180,122 @@ export default function CreateQuizPage() {
         }
     };
 
-    const addOption = (questionId: string) => {
-        setQuestions(
-            questions.map((q) =>
+    const removeImage = (questionId: string, optionId?: string) => {
+        if (optionId) {
+            setQuestions(questions.map((q) =>
                 q.id === questionId
-                    ? {
-                        ...q,
-                        options: [
-                            ...q.options,
-                            { id: Date.now().toString(), text: "", isCorrect: false },
-                        ],
-                    }
+                    ? { ...q, options: q.options.map(o => o.id === optionId ? { ...o, imageUrl: undefined } : o) }
                     : q
-            )
-        );
+            ));
+        } else {
+            setQuestions(questions.map((q) => (q.id === questionId ? { ...q, imageUrl: undefined } : q)));
+        }
+    };
+
+    const addOption = (questionId: string) => {
+        setQuestions(questions.map((q) =>
+            q.id === questionId
+                ? {
+                    ...q,
+                    options: [...q.options, { id: Date.now().toString(), text: "", isCorrect: false }],
+                }
+                : q
+        ));
     };
 
     const updateOptionText = (questionId: string, optionId: string, text: string) => {
-        setQuestions(
-            questions.map((q) =>
-                q.id === questionId
-                    ? {
-                        ...q,
-                        options: q.options.map((o) => (o.id === optionId ? { ...o, text } : o)),
-                    }
-                    : q
-            )
-        );
+        setQuestions(questions.map((q) =>
+            q.id === questionId
+                ? {
+                    ...q,
+                    options: q.options.map((o) => (o.id === optionId ? { ...o, text } : o)),
+                }
+                : q
+        ));
     };
 
     const toggleCorrectOption = (questionId: string, optionId: string) => {
-        setQuestions(
-            questions.map((q) =>
-                q.id === questionId
-                    ? {
-                        ...q,
-                        options: q.options.map((o) =>
-                            o.id === optionId ? { ...o, isCorrect: !o.isCorrect } : o
-                        ),
-                    }
-                    : q
-            )
-        );
+        setQuestions(questions.map((q) =>
+            q.id === questionId
+                ? {
+                    ...q,
+                    options: q.options.map((o) =>
+                        o.id === optionId ? { ...o, isCorrect: !o.isCorrect } : o
+                    ),
+                }
+                : q
+        ));
     };
 
     const removeOption = (questionId: string, optionId: string) => {
-        setQuestions(
-            questions.map((q) =>
-                q.id === questionId
-                    ? {
-                        ...q,
-                        options: q.options.filter((o) => o.id !== optionId),
-                    }
-                    : q
-            )
-        );
+        setQuestions(questions.map((q) =>
+            q.id === questionId
+                ? {
+                    ...q,
+                    options: q.options.filter((o) => o.id !== optionId),
+                }
+                : q
+        ));
     };
 
     const handleSubmit = async () => {
-        if (!title || questions.length === 0) {
-            toast.error("Please provide a title and at least one question.");
+        if (!user) {
+            toast.error("You must be logged in to create a quiz.");
             return;
         }
-
-        // Validate that each question has at least one correct answer
-        for (let i = 0; i < questions.length; i++) {
-            const q = questions[i];
-            const hasCorrectOption = q.options.some((o) => o.isCorrect);
-            if (!hasCorrectOption) {
-                toast.error(`Question ${i + 1} does not have a correct answer selected.`);
+        if (!title.trim()) {
+            toast.error("Quiz title cannot be empty.");
+            return;
+        }
+        if (questions.length === 0) {
+            toast.error("Please add at least one question.");
+            return;
+        }
+        for (const q of questions) {
+            if (!q.text.trim()) {
+                toast.error(`Question ${questions.indexOf(q) + 1} text cannot be empty.`);
                 return;
             }
-            // Also validate that options are not empty
-            const hasEmptyOption = q.options.some((o) => !o.text.trim());
-            if (hasEmptyOption) {
-                toast.error(`Question ${i + 1} has empty options. Please fill them or remove them.`);
+            if (q.options.length < 2) {
+                toast.error(`Question ${questions.indexOf(q) + 1} must have at least two options.`);
                 return;
+            }
+            if (!q.options.some(o => o.isCorrect)) {
+                toast.error(`Question ${questions.indexOf(q) + 1} must have at least one correct option.`);
+                return;
+            }
+            for (const o of q.options) {
+                if (!o.text.trim() && !o.imageUrl) {
+                    toast.error(`Option for Question ${questions.indexOf(q) + 1} cannot be empty.`);
+                    return;
+                }
             }
         }
 
         setSubmitting(true);
         try {
+            // Sanitize questions to remove undefined values
+            const sanitizedQuestions = questions.map(q => {
+                const { ...rest } = q;
+                // Ensure no undefined values in options
+                const sanitizedOptions = q.options.map(o => {
+                    const { ...oRest } = o;
+                    const newO: any = { ...oRest };
+                    if (newO.imageUrl === undefined) delete newO.imageUrl;
+                    return newO;
+                });
+
+                const newQ: any = { ...rest, options: sanitizedOptions };
+                if (newQ.imageUrl === undefined) delete newQ.imageUrl;
+                if (newQ.description === undefined) delete newQ.description;
+                return newQ;
+            });
+
             await addDoc(collection(db, "quizzes"), {
                 instructorId: user?.uid,
                 title,
                 description,
-                questions,
+                questions: sanitizedQuestions,
                 settings,
                 createdAt: Timestamp.now(),
             });
@@ -362,6 +410,15 @@ export default function CreateQuizPage() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <Label>Description / Explanation (shown after quiz)</Label>
+                                    <Textarea
+                                        value={q.description || ""}
+                                        onChange={(e) => updateQuestionDescription(q.id, e.target.value)}
+                                        placeholder="Explain the answer..."
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label>Image (Optional)</Label>
                                     <div className="flex items-center gap-4">
                                         <Input
@@ -377,30 +434,75 @@ export default function CreateQuizPage() {
                                         {uploadingImage === q.id && <span className="text-sm text-blue-500">Uploading...</span>}
                                     </div>
                                     {q.imageUrl && (
-                                        <div className="mt-2">
+                                        <div className="relative inline-block mt-2">
                                             <img src={q.imageUrl} alt="Question Image" className="max-h-40 rounded border" />
+                                            <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                                                onClick={() => removeImage(q.id)}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     <Label>Options</Label>
-                                    {q.options.map((option) => (
-                                        <div key={option.id} className="flex items-center gap-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={option.isCorrect}
-                                                onChange={() => toggleCorrectOption(q.id, option.id)}
-                                                className="h-4 w-4"
-                                            />
-                                            <Input
-                                                value={option.text}
-                                                onChange={(e) => updateOptionText(q.id, option.id, e.target.value)}
-                                                placeholder={`Option text`}
-                                            />
-                                            <Button variant="ghost" size="icon" onClick={() => removeOption(q.id, option.id)}>
-                                                <Trash2 className="h-4 w-4 text-gray-400" />
-                                            </Button>
+                                    {q.options.map((option, oIndex) => (
+                                        <div key={option.id} className="flex flex-col gap-2 p-3 border rounded-md">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={option.isCorrect}
+                                                    onChange={() => toggleCorrectOption(q.id, option.id)}
+                                                    className="h-4 w-4"
+                                                />
+                                                <Input
+                                                    value={option.text}
+                                                    onChange={(e) => updateOptionText(q.id, option.id, e.target.value)}
+                                                    placeholder={`Option ${oIndex + 1} (supports LaTeX)`}
+                                                    className="flex-grow"
+                                                />
+                                                <Button variant="ghost" size="icon" onClick={() => removeOption(q.id, option.id)}>
+                                                    <Trash2 className="h-4 w-4 text-gray-400" />
+                                                </Button>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 ml-6">
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="w-auto text-xs"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) handleImageUpload(q.id, file, option.id);
+                                                    }}
+                                                    disabled={uploadingImage === `${q.id}-${option.id}`}
+                                                />
+                                                {uploadingImage === `${q.id}-${option.id}` && <span className="text-xs">Uploading...</span>}
+                                            </div>
+
+                                            {(option.text || option.imageUrl) && (
+                                                <div className="ml-6 p-2 bg-gray-50 dark:bg-gray-800 rounded border flex items-center gap-2">
+                                                    <span className="text-xs text-gray-500">Preview: </span>
+                                                    {option.imageUrl && (
+                                                        <div className="relative">
+                                                            <img src={option.imageUrl} alt="Option" className="h-8 rounded" />
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="icon"
+                                                                className="absolute -top-2 -right-2 h-4 w-4 rounded-full"
+                                                                onClick={() => removeImage(q.id, option.id)}
+                                                            >
+                                                                <X className="h-2 w-2" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    <MathPreview text={option.text} />
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                     <Button variant="outline" size="sm" onClick={() => addOption(q.id)} className="mt-2">
@@ -502,6 +604,32 @@ export default function CreateQuizPage() {
                                 <Switch
                                     checked={settings.randomizeQuestions}
                                     onCheckedChange={(checked) => setSettings({ ...settings, randomizeQuestions: checked })}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Active (Accepting Responses)</Label>
+                                    <div className="text-sm text-gray-500">
+                                        If disabled, students cannot start the quiz
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={settings.isActive}
+                                    onCheckedChange={(checked) => setSettings({ ...settings, isActive: checked })}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Locked Answers</Label>
+                                    <div className="text-sm text-gray-500">
+                                        Prevent changing answers once selected
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={settings.lockedAnswers}
+                                    onCheckedChange={(checked) => setSettings({ ...settings, lockedAnswers: checked })}
                                 />
                             </div>
 

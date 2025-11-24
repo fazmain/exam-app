@@ -8,22 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
-
-interface Attempt {
-    id: string;
-    studentEmail: string;
-    score: number;
-    totalQuestions: number;
-    completedAt: any;
-}
-
-interface Quiz {
-    id: string;
-    title: string;
-    description: string;
-}
+import { Attempt, Quiz } from "@/lib/types";
 
 export default function QuizAnalyticsPage() {
     const { id } = useParams();
@@ -31,6 +18,10 @@ export default function QuizAnalyticsPage() {
     const [attempts, setAttempts] = useState<Attempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Attempt; direction: 'asc' | 'desc' }>({
+        key: 'completedAt',
+        direction: 'desc',
+    });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -42,7 +33,7 @@ export default function QuizAnalyticsPage() {
                     setQuiz({ id: quizDoc.id, ...quizDoc.data() } as Quiz);
                 }
 
-                // Fetch Attempts (removed orderBy to avoid index requirement)
+                // Fetch Attempts
                 const q = query(
                     collection(db, "attempts"),
                     where("quizId", "==", id)
@@ -52,13 +43,6 @@ export default function QuizAnalyticsPage() {
                     id: doc.id,
                     ...doc.data(),
                 })) as Attempt[];
-
-                // Sort in memory instead of in query
-                attemptsData.sort((a, b) => {
-                    const aTime = a.completedAt?.toMillis() || 0;
-                    const bTime = b.completedAt?.toMillis() || 0;
-                    return bTime - aTime; // Descending order
-                });
 
                 setAttempts(attemptsData);
             } catch (error) {
@@ -71,12 +55,44 @@ export default function QuizAnalyticsPage() {
         fetchData();
     }, [id]);
 
+    const handleSort = (key: keyof Attempt) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedAttempts = [...attempts].sort((a, b) => {
+        if (sortConfig.key === 'completedAt') {
+            const aTime = a.completedAt?.toMillis() || 0;
+            const bTime = b.completedAt?.toMillis() || 0;
+            return sortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
+        }
+        if (sortConfig.key === 'score') {
+            return sortConfig.direction === 'asc' ? a.score - b.score : b.score - a.score;
+        }
+        if (sortConfig.key === 'timeTaken') {
+            const aTime = a.timeTaken || 0;
+            const bTime = b.timeTaken || 0;
+            return sortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
+        }
+        return 0;
+    });
+
     const handleCopyLink = () => {
         const quizLink = `${window.location.origin}/quiz/${id}`;
         navigator.clipboard.writeText(quizLink);
         setCopied(true);
         toast.success("Link copied to clipboard!");
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const formatTimeTaken = (seconds?: number) => {
+        if (!seconds) return "N/A";
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}m ${secs}s`;
     };
 
     if (loading) {
@@ -159,22 +175,35 @@ export default function QuizAnalyticsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Student</TableHead>
-                                <TableHead>Score</TableHead>
-                                <TableHead>Date</TableHead>
+                                <TableHead className="cursor-pointer" onClick={() => handleSort('studentName' as any)}>
+                                    Student <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                                </TableHead>
+                                <TableHead className="cursor-pointer" onClick={() => handleSort('score')}>
+                                    Score <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                                </TableHead>
+                                <TableHead className="cursor-pointer" onClick={() => handleSort('timeTaken')}>
+                                    Time Taken <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                                </TableHead>
+                                <TableHead className="cursor-pointer" onClick={() => handleSort('completedAt')}>
+                                    Date <ArrowUpDown className="ml-2 h-4 w-4 inline" />
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {attempts.map((attempt) => (
+                            {sortedAttempts.map((attempt) => (
                                 <TableRow key={attempt.id}>
-                                    <TableCell>{attempt.studentEmail}</TableCell>
+                                    <TableCell>
+                                        <div className="font-medium">{attempt.studentName || "Unknown"}</div>
+                                        <div className="text-xs text-gray-500">{attempt.studentId ? `ID: ${attempt.studentId}` : attempt.studentEmail}</div>
+                                    </TableCell>
                                     <TableCell>{attempt.score} / {attempt.totalQuestions}</TableCell>
+                                    <TableCell>{formatTimeTaken(attempt.timeTaken)}</TableCell>
                                     <TableCell>{attempt.completedAt?.toDate().toLocaleString()}</TableCell>
                                 </TableRow>
                             ))}
                             {attempts.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center text-gray-500">
+                                    <TableCell colSpan={4} className="text-center text-gray-500">
                                         No attempts yet.
                                     </TableCell>
                                 </TableRow>

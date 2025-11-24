@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, addDoc, Timestamp, collection } from "firebase/firestore";
 import { Quiz, Question } from "@/lib/types";
 import { shuffleArray } from "@/lib/utils";
-import { CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -83,6 +83,8 @@ export default function QuizPage() {
     const [score, setScore] = useState(0);
     const [loading, setLoading] = useState(true);
     const [timeLeft, setTimeLeft] = useState<number | null>(null); // in seconds
+    const [startTime, setStartTime] = useState<number | null>(null);
+    const [studentData, setStudentData] = useState<any>(null);
 
     const [hasStarted, setHasStarted] = useState(false);
 
@@ -107,16 +109,22 @@ export default function QuizPage() {
         setScore(calculatedScore);
         setSubmitted(true);
 
+        const endTime = Date.now();
+        const timeTaken = startTime ? Math.floor((endTime - startTime) / 1000) : 0;
+
         try {
             await addDoc(collection(db, "attempts"), {
                 quizId: quiz.id,
                 quizTitle: quiz.title,
                 studentId: user.uid,
                 studentEmail: user.email,
+                studentName: studentData?.name || user.displayName || "Unknown",
+                studentIdNum: studentData?.studentId || "N/A", // Use studentIdNum to avoid conflict with user uid
                 answers,
                 score: calculatedScore,
                 totalQuestions: questions.length,
                 completedAt: Timestamp.now(),
+                timeTaken,
                 settings: quiz.settings
             });
             if (autoSubmit) {
@@ -128,7 +136,7 @@ export default function QuizPage() {
             console.error("Error submitting quiz:", error);
             toast.error("Failed to save attempt.");
         }
-    }, [quiz, user, answers, questions]);
+    }, [quiz, user, answers, questions, startTime, studentData]);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -136,13 +144,28 @@ export default function QuizPage() {
             return;
         }
 
-        const fetchQuiz = async () => {
+        const fetchData = async () => {
             if (!id || !user) return;
             try {
+                // Fetch User Data
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    setStudentData(userDoc.data());
+                }
+
+                // Fetch Quiz
                 const docRef = doc(db, "quizzes", id as string);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const quizData = { id: docSnap.id, ...docSnap.data() } as Quiz;
+
+                    // Check if active
+                    if (quizData.settings && quizData.settings.isActive === false) {
+                        toast.error("This quiz is currently not accepting responses.");
+                        router.push("/student/dashboard");
+                        return;
+                    }
+
                     setQuiz(quizData);
 
                     // Handle Randomization
@@ -169,7 +192,7 @@ export default function QuizPage() {
                     router.push("/student/dashboard");
                 }
             } catch (error) {
-                console.error("Error fetching quiz:", error);
+                console.error("Error fetching data:", error);
                 toast.error("Error loading quiz");
             } finally {
                 setLoading(false);
@@ -177,7 +200,7 @@ export default function QuizPage() {
         };
 
         if (user) {
-            fetchQuiz();
+            fetchData();
         }
     }, [id, router, user, authLoading]);
 
@@ -227,6 +250,11 @@ export default function QuizPage() {
         return () => clearInterval(timerId);
     }, [timeLeft, submitted, handleSubmit, quiz, user, hasStarted]);
 
+    const handleStart = () => {
+        setHasStarted(true);
+        setStartTime(Date.now());
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -240,6 +268,7 @@ export default function QuizPage() {
     if (submitted) {
         return (
             <QuizResults
+                quizId={quiz.id}
                 quizTitle={quiz.title}
                 score={score}
                 questions={questions}
@@ -291,11 +320,14 @@ export default function QuizPage() {
                                 {quiz.settings?.negativeMarking && (
                                     <li>Negative marking is enabled (-{quiz.settings.negativeMarkingPoints} per wrong answer).</li>
                                 )}
+                                {quiz.settings?.lockedAnswers && (
+                                    <li><strong>Locked Answers:</strong> You cannot change your answer once you select an option.</li>
+                                )}
                                 <li>Click "Submit Quiz" when you are finished.</li>
                             </ul>
                         </div>
 
-                        <Button size="lg" className="w-full" onClick={() => setHasStarted(true)}>
+                        <Button size="lg" className="w-full" onClick={handleStart}>
                             Start Quiz
                         </Button>
                     </CardContent>
@@ -337,13 +369,22 @@ export default function QuizPage() {
                                         <RadioGroup
                                             value={answers[q.id]}
                                             onValueChange={(value) => setAnswers({ ...answers, [q.id]: value })}
+                                            disabled={quiz.settings?.lockedAnswers && !!answers[q.id]}
                                         >
                                             {q.options.map((option) => (
-                                                <div key={option.id} className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-accent transition-colors">
+                                                <div key={option.id} className={`flex items-center space-x-2 p-3 rounded-lg border transition-colors ${answers[q.id] === option.id ? 'bg-accent' : 'hover:bg-accent'}`}>
                                                     <RadioGroupItem value={option.id} id={`${q.id}-${option.id}`} />
-                                                    <Label htmlFor={`${q.id}-${option.id}`} className="flex-1 cursor-pointer font-normal">
-                                                        {option.text}
+                                                    <Label htmlFor={`${q.id}-${option.id}`} className="flex-1 cursor-pointer font-normal flex flex-col">
+                                                        <div className="flex items-center gap-2">
+                                                            <MathPreview text={option.text} />
+                                                        </div>
+                                                        {option.imageUrl && (
+                                                            <img src={option.imageUrl} alt="Option" className="mt-2 max-h-32 rounded border self-start" />
+                                                        )}
                                                     </Label>
+                                                    {quiz.settings?.lockedAnswers && answers[q.id] && answers[q.id] !== option.id && (
+                                                        <Lock className="h-4 w-4 text-gray-400" />
+                                                    )}
                                                 </div>
                                             ))}
                                         </RadioGroup>

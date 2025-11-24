@@ -34,13 +34,21 @@ function SignupForm() {
             const user = userCredential.user;
 
             // 2. Create user doc in Firestore
-            await setDoc(doc(db, "users", user.uid), {
+            const userData: any = {
                 uid: user.uid,
                 email: user.email,
                 name,
                 role,
                 createdAt: new Date(),
-            });
+            };
+
+            if (role === "student") {
+                // Generate a random 6-digit student ID
+                // In a real app, we'd check for uniqueness, but for now random is fine
+                userData.studentId = Math.floor(100000 + Math.random() * 900000).toString();
+            }
+
+            await setDoc(doc(db, "users", user.uid), userData);
 
             toast.success("Account created successfully!");
             router.push(redirect || "/dashboard");

@@ -2,6 +2,7 @@ export interface Option {
     id: string;
     text: string;
     isCorrect: boolean;
+    imageUrl?: string;
 }
 
 export interface Question {
@@ -10,6 +11,7 @@ export interface Question {
     options: Option[];
     imageUrl?: string;
     randomizeOptions?: boolean;
+    description?: string; // Explanation for the answer
 }
 
 export interface QuizSettings {
@@ -19,6 +21,8 @@ export interface QuizSettings {
     randomizeQuestions: boolean;
     pointsPerQuestion: number;
     negativeMarkingPoints: number;
+    lockedAnswers: boolean; // If true, users can't change answer once selected
+    isActive: boolean; // If false, quiz is not accepting responses
 }
 
 export interface Quiz {
@@ -29,4 +33,17 @@ export interface Quiz {
     questions: Question[];
     settings: QuizSettings;
     createdAt: any; // Firebase Timestamp
+}
+
+export interface Attempt {
+    id: string;
+    quizId: string;
+    studentId: string;
+    studentName: string;
+    studentEmail: string;
+    score: number;
+    totalQuestions: number;
+    completedAt: any; // Firebase Timestamp
+    timeTaken: number; // in seconds
+    answers: Record<string, string>; // questionId -> optionId
 }
