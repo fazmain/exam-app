@@ -35,8 +35,8 @@ export function Navbar() {
             <div className="container flex h-16 items-center justify-between px-4">
                 <div className="flex items-center gap-2">
                     <Link href="/" className="flex items-center gap-2">
-                        <BookOpen className="h-6 w-6 text-primary" />
-                        <span className="text-xl font-bold">QuizMaster</span>
+                        <img src="/logo.png" alt="Paperless Logo" className="h-8 w-8" />
+                        <span className="text-xl font-bold">Paperless</span>
                     </Link>
                 </div>
 
