@@ -61,37 +61,39 @@ function SignupForm() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>Sign Up</CardTitle>
-                    <CardDescription>Create an account to get started.</CardDescription>
-                </CardHeader>
-                <form onSubmit={handleSignup}>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
+        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+            <div className="flex items-center justify-center py-12">
+                <div className="mx-auto grid w-[350px] gap-6">
+                    <div className="grid gap-2 text-center">
+                        <h1 className="text-3xl font-bold">Sign Up</h1>
+                        <p className="text-balance text-muted-foreground">
+                            Create an account to get started
+                        </p>
+                    </div>
+                    <form onSubmit={handleSignup} className="grid gap-4">
+                        <div className="grid gap-2">
                             <Label htmlFor="name">Name</Label>
                             <Input
                                 id="name"
                                 type="text"
-                                placeholder="John Doe"
+                                placeholder="Habiba Hye"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
                             />
                         </div>
-                        <div className="space-y-2">
+                        <div className="grid gap-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="m@example.com"
+                                placeholder="name@email.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
                         </div>
-                        <div className="space-y-2">
+                        <div className="grid gap-2">
                             <Label htmlFor="password">Password</Label>
                             <Input
                                 id="password"
@@ -101,7 +103,7 @@ function SignupForm() {
                                 required
                             />
                         </div>
-                        <div className="space-y-2">
+                        <div className="grid gap-2">
                             <Label htmlFor="role">I am a...</Label>
                             <Select value={role} onValueChange={(val: "instructor" | "student") => setRole(val)}>
                                 <SelectTrigger>
@@ -113,23 +115,25 @@ function SignupForm() {
                                 </SelectContent>
                             </Select>
                         </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col space-y-2">
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button type="submit" className="w-full h-12 text-lg mt-4" disabled={loading}>
                             {loading ? "Signing up..." : "Sign Up"}
                         </Button>
-                        <div className="text-sm text-center text-gray-500">
-                            Already have an account?{" "}
-                            <Link
-                                href={redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"}
-                                className="text-blue-600 hover:underline"
-                            >
-                                Login
-                            </Link>
-                        </div>
-                    </CardFooter>
-                </form>
-            </Card>
+                    </form>
+                    <div className="mt-4 text-center text-sm">
+                        Already have an account?{" "}
+                        <Link href="/login" className="underline">
+                            Login
+                        </Link>
+                    </div>
+                </div>
+            </div>
+            <div className="hidden bg-muted lg:block relative">
+                <img
+                    src="/sign-up.svg"
+                    alt="Image"
+                    className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale absolute inset-0"
+                />
+            </div>
         </div>
     );
 }
