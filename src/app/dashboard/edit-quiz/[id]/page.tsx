@@ -396,8 +396,8 @@ export default function EditQuizPage() {
                                         <div
                                             key={option.id}
                                             className={`flex flex-col gap-2 p-3 border rounded-md transition-colors ${option.isCorrect
-                                                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                                                    : "border-gray-200 dark:border-gray-800"
+                                                ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                                                : "border-gray-200 dark:border-gray-800"
                                                 }`}
                                         >
                                             <div className="flex items-center gap-2">
@@ -489,7 +489,11 @@ export default function EditQuizPage() {
                                 </div>
                                 <Switch
                                     checked={settings.gradingSystem}
-                                    onCheckedChange={(checked) => setSettings({ ...settings, gradingSystem: checked })}
+                                    onCheckedChange={(checked) => setSettings({
+                                        ...settings,
+                                        gradingSystem: checked,
+                                        negativeMarking: checked ? settings.negativeMarking : false
+                                    })}
                                 />
                             </div>
 
@@ -509,8 +513,8 @@ export default function EditQuizPage() {
 
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                    <Label className="text-base">Negative Marking</Label>
-                                    <div className="text-sm text-gray-500 flex items-center gap-2">
+                                    <Label className={`text-base ${!settings.gradingSystem ? "text-gray-400" : ""}`}>Negative Marking</Label>
+                                    <div className={`text-sm flex items-center gap-2 ${!settings.gradingSystem ? "text-gray-300" : "text-gray-500"}`}>
                                         Deduct points for wrong answers
                                         <TooltipProvider>
                                             <Tooltip>
@@ -524,6 +528,7 @@ export default function EditQuizPage() {
                                 </div>
                                 <Switch
                                     checked={settings.negativeMarking}
+                                    disabled={!settings.gradingSystem}
                                     onCheckedChange={(checked) => setSettings({ ...settings, negativeMarking: checked })}
                                 />
                             </div>
