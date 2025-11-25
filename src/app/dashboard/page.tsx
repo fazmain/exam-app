@@ -49,7 +49,10 @@ export default function DashboardPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold tracking-tight">My Quizzes</h2>
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">My Quizzes</h2>
+                    <p className="text-muted-foreground">Welcome, {user?.email}</p>
+                </div>
                 <Link href="/dashboard/create-quiz">
                     <Button>
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -82,6 +85,19 @@ export default function DashboardPage() {
                                         Created: {quiz.createdAt?.toDate().toLocaleDateString()}
                                     </span>
                                     <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={() => {
+                                                const link = `${window.location.origin}/quiz/${quiz.id}`;
+                                                navigator.clipboard.writeText(link);
+                                                // toast.success("Link copied to clipboard!");
+                                                alert("Link copied to clipboard!");
+                                            }}
+                                        >
+                                            Copy Link
+                                        </Button>
                                         <Link href={`/dashboard/edit-quiz/${quiz.id}`} className="flex-1">
                                             <Button variant="outline" size="sm" className="w-full">
                                                 <Edit className="h-4 w-4 mr-2" />

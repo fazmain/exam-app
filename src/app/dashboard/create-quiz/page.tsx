@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
@@ -16,72 +16,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Plus, Trash2, Image as ImageIcon, Bold, Italic, Underline, Info, Shuffle, X } from "lucide-react";
-import katex from "katex";
-import "katex/dist/katex.min.css";
-import ReactMarkdown from "react-markdown";
 import { Question, QuizSettings } from "@/lib/types";
 
-const MathPreview = ({ text }: { text: string }) => {
-    if (!text) return <span></span>;
-
-    // Custom renderer to handle both Markdown and LaTeX
-    // We'll use a simple approach: Render Markdown first, then process LaTeX in the output?
-    // Or better: Split by LaTeX delimiters, render Markdown for text parts, and LaTeX for math parts.
-
-    try {
-        const parts: React.ReactElement[] = [];
-        let currentIndex = 0;
-        let inMath = false;
-        let mathStart = -1;
-
-        for (let i = 0; i < text.length; i++) {
-            if (text[i] === '$') {
-                if (inMath) {
-                    // End of math expression
-                    const mathText = text.substring(mathStart + 1, i);
-                    try {
-                        const html = katex.renderToString(mathText, {
-                            throwOnError: false,
-                            displayMode: false,
-                        });
-                        parts.push(<span key={i} dangerouslySetInnerHTML={{ __html: html }} />);
-                    } catch {
-                        parts.push(<span key={i}>${mathText}$</span>);
-                    }
-                    currentIndex = i + 1;
-                    inMath = false;
-                } else {
-                    // Start of math expression
-                    if (i > currentIndex) {
-                        // Add normal text before math - Render as Markdown
-                        const mdText = text.substring(currentIndex, i);
-                        parts.push(
-                            <span key={currentIndex} className="inline-block">
-                                <ReactMarkdown>{mdText}</ReactMarkdown>
-                            </span>
-                        );
-                    }
-                    mathStart = i;
-                    inMath = true;
-                }
-            }
-        }
-
-        // Add remaining text
-        if (currentIndex < text.length) {
-            const mdText = text.substring(currentIndex);
-            parts.push(
-                <span key={currentIndex} className="inline-block">
-                    <ReactMarkdown>{mdText}</ReactMarkdown>
-                </span>
-            );
-        }
-
-        return <div className="prose dark:prose-invert max-w-none flex flex-wrap gap-1 items-center">{parts}</div>;
-    } catch (e) {
-        return <span>{text}</span>;
-    }
-};
+import { MathPreview } from "@/components/MathPreview";
 
 export default function CreateQuizPage() {
     const { user } = useAuth();
@@ -95,10 +32,14 @@ export default function CreateQuizPage() {
             options: [
                 { id: "1", text: "", isCorrect: false },
                 { id: "2", text: "", isCorrect: false },
+                { id: "3", text: "", isCorrect: false },
+                { id: "4", text: "", isCorrect: false },
             ],
             randomizeOptions: false,
         },
     ]);
+    const [isLoaded, setIsLoaded] = useState(false);
+
     const [settings, setSettings] = useState<QuizSettings>({
         gradingSystem: true,
         timer: 0,
@@ -109,6 +50,36 @@ export default function CreateQuizPage() {
         lockedAnswers: false,
         isActive: true,
     });
+
+    // Load draft from localStorage on mount
+    useEffect(() => {
+        const savedDraft = localStorage.getItem("quizDraft");
+        if (savedDraft) {
+            try {
+                const draft = JSON.parse(savedDraft);
+                if (draft.title) setTitle(draft.title);
+                if (draft.description) setDescription(draft.description);
+                if (draft.questions) setQuestions(draft.questions);
+                if (draft.settings) setSettings(draft.settings);
+                toast.info("Restored draft from autosave");
+            } catch (e) {
+                console.error("Failed to parse draft", e);
+            }
+        }
+        setIsLoaded(true);
+    }, []);
+
+    // Save draft to localStorage on change
+    useEffect(() => {
+        if (!isLoaded) return;
+        const draft = {
+            title,
+            description,
+            questions,
+            settings,
+        };
+        localStorage.setItem("quizDraft", JSON.stringify(draft));
+    }, [title, description, questions, settings, isLoaded]);
 
 
     const [submitting, setSubmitting] = useState(false);
@@ -123,6 +94,8 @@ export default function CreateQuizPage() {
                 options: [
                     { id: "1", text: "", isCorrect: false },
                     { id: "2", text: "", isCorrect: false },
+                    { id: "3", text: "", isCorrect: false },
+                    { id: "4", text: "", isCorrect: false },
                 ],
                 randomizeOptions: false,
             },
@@ -300,6 +273,7 @@ export default function CreateQuizPage() {
                 createdAt: Timestamp.now(),
             });
             toast.success("Quiz created successfully!");
+            localStorage.removeItem("quizDraft");
             router.push("/dashboard");
         } catch (error) {
             console.error("Error creating quiz:", error);
@@ -451,13 +425,19 @@ export default function CreateQuizPage() {
                                 <div className="space-y-3">
                                     <Label>Options</Label>
                                     {q.options.map((option, oIndex) => (
-                                        <div key={option.id} className="flex flex-col gap-2 p-3 border rounded-md">
+                                        <div
+                                            key={option.id}
+                                            className={`flex flex-col gap-2 p-3 border rounded-md transition-colors ${option.isCorrect
+                                                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                                                    : "border-gray-200 dark:border-gray-800"
+                                                }`}
+                                        >
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="checkbox"
                                                     checked={option.isCorrect}
                                                     onChange={() => toggleCorrectOption(q.id, option.id)}
-                                                    className="h-4 w-4"
+                                                    className="h-5 w-5 accent-green-600 cursor-pointer"
                                                 />
                                                 <Input
                                                     value={option.text}
