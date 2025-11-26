@@ -18,7 +18,6 @@ function SignupForm() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [role, setRole] = useState<"instructor" | "student">("student");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -38,20 +37,23 @@ function SignupForm() {
                 uid: user.uid,
                 email: user.email,
                 name,
-                role,
+                role: "instructor", // Default to instructor so they can create quizzes
                 createdAt: new Date(),
+                // Generate a random 5-digit student ID for everyone
+                studentId: Math.floor(10000 + Math.random() * 90000).toString(),
             };
-
-            if (role === "student") {
-                // Generate a random 5-digit student ID
-                // In a real app, we'd check for uniqueness, but for now random is fine
-                userData.studentId = Math.floor(10000 + Math.random() * 90000).toString();
-            }
 
             await setDoc(doc(db, "users", user.uid), userData);
 
             toast.success("Account created successfully!");
-            router.push(redirect || "/dashboard");
+            // Check for stored redirect URL
+            const redirectUrl = localStorage.getItem('redirectAfterLogin');
+            if (redirectUrl) {
+                localStorage.removeItem('redirectAfterLogin');
+                router.push(redirectUrl);
+            } else {
+                router.push(redirect || "/dashboard");
+            }
         } catch (error: any) {
             console.error(error);
             toast.error(error.message || "Failed to sign up");
@@ -102,18 +104,6 @@ function SignupForm() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="role">I am a...</Label>
-                            <Select value={role} onValueChange={(val: "instructor" | "student") => setRole(val)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="student">Student</SelectItem>
-                                    <SelectItem value="instructor">Instructor</SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
                         <Button type="submit" className="w-full h-12 text-lg mt-4" disabled={loading}>
                             {loading ? "Signing up..." : "Sign Up"}

@@ -13,22 +13,16 @@ export default function DashboardLayout({
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading) {
-            if (!user) {
-                router.push("/login");
-            } else if (role !== "instructor") {
-                // If student tries to access dashboard, maybe redirect to their home or show unauthorized
-                // For now, let's assume students have a different view or just redirect to home
-                router.push("/");
-            }
+        if (!loading && !user) {
+            router.push("/login");
         }
-    }, [user, role, loading, router]);
+    }, [user, loading, router]);
 
     if (loading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
     }
 
-    if (!user || role !== "instructor") {
+    if (!user) {
         return null; // Will redirect
     }
 

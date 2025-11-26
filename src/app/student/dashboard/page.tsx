@@ -96,7 +96,7 @@ export default function StudentDashboard() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto py-10 space-y-8 px-4">
+        <div className="max-w-7xl mx-auto py-10 space-y-8 px-4">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Student Dashboard</h1>
@@ -104,7 +104,7 @@ export default function StudentDashboard() {
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-4">
                 <Card className="md:col-span-1">
                     <CardHeader>
                         <CardTitle>My Profile</CardTitle>
@@ -135,7 +135,7 @@ export default function StudentDashboard() {
                     </CardContent>
                 </Card>
 
-                <Card className="md:col-span-2">
+                <Card className="md:col-span-3">
                     <CardHeader>
                         <CardTitle>My Attempts</CardTitle>
                     </CardHeader>

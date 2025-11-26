@@ -59,8 +59,11 @@ export function Navbar() {
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => router.push(role === 'instructor' ? '/dashboard' : '/student/dashboard')}>
-                                    Dashboard
+                                <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                                    Creator Dashboard
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push('/student/dashboard')}>
+                                    Student Dashboard
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
                                     <LogOut className="mr-2 h-4 w-4" />
