@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,6 +18,7 @@ function SignupForm() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -27,10 +28,19 @@ function SignupForm() {
         e.preventDefault();
         setLoading(true);
 
+        if (password !== confirmPassword) {
+            toast.error("Passwords do not match");
+            setLoading(false);
+            return;
+        }
+
         try {
             // 1. Create user in Auth
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+
+            // Send verification email
+            await sendEmailVerification(user);
 
             // 2. Create user doc in Firestore
             const userData: any = {
@@ -45,7 +55,7 @@ function SignupForm() {
 
             await setDoc(doc(db, "users", user.uid), userData);
 
-            toast.success("Account created successfully!");
+            toast.success("Account created! Please check your email to verify your account.");
             // Check for stored redirect URL
             const redirectUrl = localStorage.getItem('redirectAfterLogin');
             if (redirectUrl) {
@@ -102,6 +112,16 @@ function SignupForm() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="confirmPassword">Confirm Password</Label>
+                            <Input
+                                id="confirmPassword"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
                             />
                         </div>

@@ -146,6 +146,11 @@ export default function QuizPage() {
             return;
         }
 
+        if (user && !user.emailVerified) {
+            router.push("/verify-email");
+            return;
+        }
+
         const fetchData = async () => {
             if (!id || !user) return;
             try {

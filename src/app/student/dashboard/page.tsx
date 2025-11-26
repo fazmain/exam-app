@@ -51,6 +51,11 @@ export default function StudentDashboard() {
             return;
         }
 
+        if (user && !user.emailVerified) {
+            router.push("/verify-email");
+            return;
+        }
+
         const fetchAttempts = async () => {
             if (!user) return;
             try {

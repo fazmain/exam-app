@@ -13,8 +13,12 @@ export default function DashboardLayout({
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push("/login");
+        if (!loading) {
+            if (!user) {
+                router.push("/login");
+            } else if (!user.emailVerified) {
+                router.push("/verify-email");
+            }
         }
     }, [user, loading, router]);
 

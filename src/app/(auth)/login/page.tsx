@@ -25,8 +25,14 @@ function LoginForm() {
         setLoading(true);
 
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            toast.success("Logged in successfully!");
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            if (!user.emailVerified) {
+                toast.warning("Please verify your email address.");
+            } else {
+                toast.success("Logged in successfully!");
+            }
 
             // Check for stored redirect URL
             const redirectUrl = localStorage.getItem('redirectAfterLogin');
@@ -71,6 +77,9 @@ function LoginForm() {
                         <div className="grid gap-2">
                             <div className="flex items-center">
                                 <Label htmlFor="password">Password</Label>
+                                <Link href="/forgot-password" className="ml-auto inline-block text-sm underline">
+                                    Forgot your password?
+                                </Link>
                             </div>
                             <Input
                                 id="password"
