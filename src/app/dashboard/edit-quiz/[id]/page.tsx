@@ -35,6 +35,7 @@ export default function EditQuizPage() {
         negativeMarkingPoints: 0.25,
         lockedAnswers: false,
         isActive: true,
+        allowRetakes: false,
     });
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(true);

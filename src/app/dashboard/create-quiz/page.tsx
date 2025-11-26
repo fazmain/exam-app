@@ -49,6 +49,7 @@ export default function CreateQuizPage() {
         negativeMarkingPoints: 0.25,
         lockedAnswers: false,
         isActive: true,
+        allowRetakes: false,
     });
 
     // Load draft from localStorage on mount
