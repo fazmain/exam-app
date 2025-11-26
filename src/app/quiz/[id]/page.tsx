@@ -390,9 +390,17 @@ export default function QuizPage() {
                                             disabled={quiz.settings?.lockedAnswers && !!answers[q.id]}
                                         >
                                             {q.options.map((option) => (
-                                                <div key={option.id} className={`flex items-center space-x-2 p-3 rounded-lg border transition-colors ${answers[q.id] === option.id ? 'bg-accent' : 'hover:bg-accent'}`}>
+                                                <div
+                                                    key={option.id}
+                                                    className={`flex items-center space-x-2 p-3 rounded-lg border transition-colors cursor-pointer ${answers[q.id] === option.id ? 'bg-accent' : 'hover:bg-accent'}`}
+                                                    onClick={() => {
+                                                        if (!quiz.settings?.lockedAnswers || !answers[q.id]) {
+                                                            setAnswers({ ...answers, [q.id]: option.id });
+                                                        }
+                                                    }}
+                                                >
                                                     <RadioGroupItem value={option.id} id={`${q.id}-${option.id}`} />
-                                                    <Label htmlFor={`${q.id}-${option.id}`} className="flex-1 cursor-pointer font-normal flex flex-col">
+                                                    <Label htmlFor={`${q.id}-${option.id}`} className="flex-1 cursor-pointer font-normal flex flex-col pointer-events-none">
                                                         <div className="flex items-center gap-2">
                                                             <MathPreview text={option.text} />
                                                         </div>

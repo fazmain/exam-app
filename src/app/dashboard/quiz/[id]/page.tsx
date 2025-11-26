@@ -194,7 +194,7 @@ export default function QuizAnalyticsPage() {
                                 <TableRow key={attempt.id}>
                                     <TableCell>
                                         <div className="font-medium">{attempt.studentName || "Unknown"}</div>
-                                        <div className="text-xs text-gray-500">{attempt.studentId ? `ID: ${attempt.studentId}` : attempt.studentEmail}</div>
+                                        <div className="text-xs text-gray-500">{attempt.studentEmail}</div>
                                     </TableCell>
                                     <TableCell>{attempt.score} / {attempt.totalQuestions}</TableCell>
                                     <TableCell>{formatTimeTaken(attempt.timeTaken)}</TableCell>

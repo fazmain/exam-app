@@ -44,33 +44,43 @@ export function Navbar() {
                     <ModeToggle />
 
                     {user ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full">
-                                    <User className="h-5 w-5" />
-                                    <span className="sr-only">User menu</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">Account</p>
-                                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-                                    Creator Dashboard
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => router.push('/student/dashboard')}>
-                                    Student Dashboard
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    Log out
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <>
+                            <div className="hidden md:flex items-center gap-2 mr-2">
+                                <Link href="/dashboard">
+                                    <Button variant="ghost" size="sm">Teacher Dashboard</Button>
+                                </Link>
+                                <Link href="/student/dashboard">
+                                    <Button variant="ghost" size="sm">Student Dashboard</Button>
+                                </Link>
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="rounded-full">
+                                        <User className="h-5 w-5" />
+                                        <span className="sr-only">User menu</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>
+                                        <div className="flex flex-col space-y-1">
+                                            <p className="text-sm font-medium leading-none">Account</p>
+                                            <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                                        </div>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                                        Teacher Dashboard
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => router.push('/student/dashboard')}>
+                                        Student Dashboard
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        Log out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </>
                     ) : (
                         <div className="flex items-center gap-2">
                             <Link href="/login">

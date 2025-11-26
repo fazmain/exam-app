@@ -49,7 +49,7 @@ export default function HomePage() {
               </Link>
               <Link href="/login">
                 <Button size="lg" variant="outline" className="text-lg px-8 w-full sm:w-auto">
-                  Instructor Login
+                  Login
                 </Button>
               </Link>
             </div>
@@ -64,29 +64,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Student Section */}
-      <section className="bg-muted/50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="max-w-3xl mx-auto space-y-6">
-            <h2 className="text-3xl font-bold">Are you a Student?</h2>
-            <p className="text-lg text-muted-foreground">
-              Join your class, take quizzes, and track your progress. It's free and easy to get started.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link href="/signup">
-                <Button size="lg" variant="default" className="text-lg px-8">
-                  Student Sign Up
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button size="lg" variant="outline" className="text-lg px-8">
-                  Join a Quiz
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* Footer */}
       <footer className="border-t py-8 bg-background">
