@@ -21,10 +21,10 @@ export async function generateMetadata(
             const data = docSnap.data();
             return {
                 title: data.title,
-                description: data.description || "Take this quiz on Paperless",
+                description: data.description || "Take this quiz on Shothiq",
                 openGraph: {
                     title: data.title,
-                    description: data.description || "Take this quiz on Paperless",
+                    description: data.description || "Take this quiz on Shothiq",
                 }
             };
         }
@@ -33,7 +33,7 @@ export async function generateMetadata(
     }
 
     return {
-        title: "Quiz | Paperless",
+        title: "Quiz | Shothiq",
     };
 }
 

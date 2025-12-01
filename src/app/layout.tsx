@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Paperless",
+  title: "Shothiq",
   description: "The Quiz Platform for Independent Teachers",
   icons: {
     icon: "/logo.png",

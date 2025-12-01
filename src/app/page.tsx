@@ -69,7 +69,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-muted-foreground">
-          <p>© 2025 Paperless. Empowering Independent Teachers.</p>
+          <p>© 2025 Shothiq. Empowering Independent Teachers.</p>
         </div>
       </footer>
     </div>
