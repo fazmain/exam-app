@@ -148,42 +148,79 @@ export default function StudentDashboard() {
                         {attempts.length === 0 ? (
                             <p className="text-center text-gray-500 py-8">No attempts found. Take a quiz to get started!</p>
                         ) : (
-                            <Table>
-                                <TableCaption>A list of your recent quiz attempts.</TableCaption>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Quiz Title</TableHead>
-                                        <TableHead>Score</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead className="text-right">Percentage</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
+                            <>
+                                <div className="hidden md:block">
+                                    <Table>
+                                        <TableCaption>A list of your recent quiz attempts.</TableCaption>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Quiz Title</TableHead>
+                                                <TableHead>Score</TableHead>
+                                                <TableHead>Date</TableHead>
+                                                <TableHead className="text-right">Percentage</TableHead>
+                                                <TableHead className="text-right">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {attempts.map((attempt) => (
+                                                <TableRow key={attempt.id}>
+                                                    <TableCell className="font-medium">{attempt.quizTitle || "Untitled Quiz"}</TableCell>
+                                                    <TableCell>{attempt.score} / {attempt.totalQuestions}</TableCell>
+                                                    <TableCell>
+                                                        {attempt.completedAt?.seconds
+                                                            ? format(new Date(attempt.completedAt.seconds * 1000), "PPP p")
+                                                            : "N/A"}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        {Math.round((attempt.score / attempt.totalQuestions) * 100)}%
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button variant="outline" size="sm" onClick={() => router.push(`/student/attempt/${attempt.id}`)}>
+                                                            Review
+                                                        </Button>
+                                                        <Button variant="default" size="sm" className="ml-2" onClick={() => router.push(`/quiz/${attempt.quizId}`)}>
+                                                            Retake
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+
+                                <div className="md:hidden space-y-4">
                                     {attempts.map((attempt) => (
-                                        <TableRow key={attempt.id}>
-                                            <TableCell className="font-medium">{attempt.quizTitle || "Untitled Quiz"}</TableCell>
-                                            <TableCell>{attempt.score} / {attempt.totalQuestions}</TableCell>
-                                            <TableCell>
-                                                {attempt.completedAt?.seconds
-                                                    ? format(new Date(attempt.completedAt.seconds * 1000), "PPP p")
-                                                    : "N/A"}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {Math.round((attempt.score / attempt.totalQuestions) * 100)}%
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="outline" size="sm" onClick={() => router.push(`/student/attempt/${attempt.id}`)}>
+                                        <div key={attempt.id} className="border rounded-lg p-4 space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-medium">{attempt.quizTitle || "Untitled Quiz"}</h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {attempt.completedAt?.seconds
+                                                            ? format(new Date(attempt.completedAt.seconds * 1000), "PP p")
+                                                            : "N/A"}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-bold">
+                                                        {Math.round((attempt.score / attempt.totalQuestions) * 100)}%
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {attempt.score}/{attempt.totalQuestions}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 pt-2">
+                                                <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push(`/student/attempt/${attempt.id}`)}>
                                                     Review
                                                 </Button>
-                                                <Button variant="default" size="sm" className="ml-2" onClick={() => router.push(`/quiz/${attempt.quizId}`)}>
+                                                <Button variant="default" size="sm" className="flex-1" onClick={() => router.push(`/quiz/${attempt.quizId}`)}>
                                                     Retake
                                                 </Button>
-                                            </TableCell>
-                                        </TableRow>
+                                            </div>
+                                        </div>
                                     ))}
-                                </TableBody>
-                            </Table>
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>
