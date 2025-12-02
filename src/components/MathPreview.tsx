@@ -2,6 +2,7 @@ import React from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 
 export const MathPreview = ({ text }: { text: string }) => {
     if (!text) return <span></span>;
@@ -35,7 +36,7 @@ export const MathPreview = ({ text }: { text: string }) => {
                         const mdText = text.substring(currentIndex, i);
                         parts.push(
                             <span key={currentIndex} className="inline-block">
-                                <ReactMarkdown>{mdText}</ReactMarkdown>
+                                <ReactMarkdown rehypePlugins={[rehypeRaw]}>{mdText}</ReactMarkdown>
                             </span>
                         );
                     }
@@ -50,7 +51,7 @@ export const MathPreview = ({ text }: { text: string }) => {
             const mdText = text.substring(currentIndex);
             parts.push(
                 <span key={currentIndex} className="inline-block">
-                    <ReactMarkdown>{mdText}</ReactMarkdown>
+                    <ReactMarkdown rehypePlugins={[rehypeRaw]}>{mdText}</ReactMarkdown>
                 </span>
             );
         }

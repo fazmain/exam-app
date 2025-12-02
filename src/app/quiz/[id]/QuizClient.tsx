@@ -13,64 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import katex from "katex";
-import "katex/dist/katex.min.css";
-import ReactMarkdown from "react-markdown";
 import { QuizResults } from "@/components/QuizResults";
-
-const MathPreview = ({ text }: { text: string }) => {
-    if (!text) return <span></span>;
-
-    try {
-        const parts: React.ReactElement[] = [];
-        let currentIndex = 0;
-        let inMath = false;
-        let mathStart = -1;
-
-        for (let i = 0; i < text.length; i++) {
-            if (text[i] === '$') {
-                if (inMath) {
-                    const mathText = text.substring(mathStart + 1, i);
-                    try {
-                        const html = katex.renderToString(mathText, {
-                            throwOnError: false,
-                            displayMode: false,
-                        });
-                        parts.push(<span key={i} dangerouslySetInnerHTML={{ __html: html }} />);
-                    } catch {
-                        parts.push(<span key={i}>${mathText}$</span>);
-                    }
-                    currentIndex = i + 1;
-                    inMath = false;
-                } else {
-                    if (i > currentIndex) {
-                        const mdText = text.substring(currentIndex, i);
-                        parts.push(
-                            <span key={currentIndex} className="inline-block">
-                                <ReactMarkdown>{mdText}</ReactMarkdown>
-                            </span>
-                        );
-                    }
-                    mathStart = i;
-                    inMath = true;
-                }
-            }
-        }
-
-        if (currentIndex < text.length) {
-            const mdText = text.substring(currentIndex);
-            parts.push(
-                <span key={currentIndex} className="inline-block">
-                    <ReactMarkdown>{mdText}</ReactMarkdown>
-                </span>
-            );
-        }
-
-        return <div className="prose dark:prose-invert max-w-none flex flex-wrap gap-1 items-center">{parts}</div>;
-    } catch (e) {
-        return <span>{text}</span>;
-    }
-};
+import { MathPreview } from "@/components/MathPreview";
 
 export default function QuizClient() {
     const { id } = useParams();
